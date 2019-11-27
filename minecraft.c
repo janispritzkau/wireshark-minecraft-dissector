@@ -1,7 +1,12 @@
 #define HAVE_PLUGINS
 
-#include <epan/conversation.h>
+#include <epan/proto.h>
+#include <epan/proto_data.h>
 #include <epan/packet.h>
+#include <epan/conversation.h>
+
+#include <ws_attributes.h>
+#include <ws_symbol_export.h>
 
 WS_DLL_PUBLIC const gchar plugin_version[] = "0.1.0";
 WS_DLL_PUBLIC const int plugin_want_major = 3;
@@ -32,7 +37,7 @@ int get_string(tvbuff_t* tvb, guint offset, gchar** str)
 {
     guint64 length;
     guint len = get_varint(tvb, offset, &length);
-    *str = tvb_get_string_enc(wmem_packet_scope(), tvb, offset, length, ENC_UTF_8);
+    *str = tvb_get_string_enc(wmem_packet_scope(), tvb, offset += len, length, ENC_UTF_8);
     return len + length;
 }
 
@@ -110,6 +115,8 @@ int dissect_minecraft(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
             guint64 state;
             offset += get_varint(tvb, offset, &state);
             conv_data->state = state;
+        } else if (!serverbound && packet_info->state == MINECRAFT_LOGIN && id == 2) {
+            conv_data->state = MINECRAFT_PLAY;
         }
 
         col_set_str(pinfo->cinfo, COL_PROTOCOL, "MC");

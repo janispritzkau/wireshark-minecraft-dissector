@@ -18,6 +18,7 @@ static int proto_minecraft = -1;
 
 static int hf_minecraft_len = -1;
 static int hf_minecraft_id = -1;
+static int hf_minecraft_data = -1;
 
 static int ett_minecraft = -1;
 
@@ -101,8 +102,8 @@ int dissect_minecraft(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
 
         proto_tree_add_uint(subtree, hf_minecraft_len, tvb, start, offset - start, length);
         proto_tree_add_uint(subtree, hf_minecraft_id, tvb, offset, len, id);
-
         offset += len;
+        proto_tree_add_item(subtree, hf_minecraft_data, tvb, offset, end - offset, 0);
 
         gint serverbound = pinfo->match_uint == pinfo->destport;
 
@@ -111,7 +112,8 @@ int dissect_minecraft(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
             offset += get_varint(tvb, offset, &protocol);
             gchar* host;
             offset += get_string(tvb, offset, &host);
-            guint16 port = tvb_get_guint16(tvb, (offset += 2) - 2, 0);
+            guint16 port = tvb_get_guint16(tvb, offset, 0);
+            offset += 2;
             guint64 state;
             offset += get_varint(tvb, offset, &state);
             conv_data->state = state;
@@ -135,7 +137,9 @@ void proto_register_minecraft()
             { "Packet Length", "mc.len", FT_UINT32, BASE_DEC, NULL, 0x0, NULL,
                 HFILL } },
         { &hf_minecraft_id,
-            { "Packet Type", "mc.id", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL } }
+            { "Packet Type", "mc.id", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL } },
+        { &hf_minecraft_data,
+            { "Packet Data", "mc.data", FT_BYTES, 0, NULL, 0x0, NULL, HFILL } }
     };
 
     static gint* ett[] = { &ett_minecraft };
